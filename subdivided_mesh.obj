@@ -1,0 +1,44 @@
+def subdivide_mesh(vertices, indices, num_subdivisions):
+    for i in range(num_subdivisions):
+        new_vertices = vertices.copy()
+        new_indices = []
+        vertex_map = {}
+
+        # Subdivide each triangle into four smaller triangles
+        for triangle in indices:
+            # Compute new vertices at midpoints of edges
+            a, b, c = vertices[triangle]
+            ab = (a + b) / 2
+            bc = (b + c) / 2
+            ca = (c + a) / 2
+
+            # Add new vertices to vertex list and map them to their indices
+            vertex_map[(triangle[0], triangle[1])] = len(new_vertices)
+            new_vertices = np.vstack([new_vertices, ab])
+            vertex_map[(triangle[1], triangle[2])] = len(new_vertices)
+            new_vertices = np.vstack([new_vertices, bc])
+            vertex_map[(triangle[2], triangle[0])] = len(new_vertices)
+            new_vertices = np.vstack([new_vertices, ca])
+
+            # Create new triangles using new and original vertices
+            ab_ba = (vertex_map[(triangle[0], triangle[1])], vertex_map[(triangle[1], triangle[0])], triangle[2])
+            bc_cb = (vertex_map[(triangle[1], triangle[2])], vertex_map[(triangle[2], triangle[1])], triangle[0])
+            ca_ac = (vertex_map[(triangle[2], triangle[0])], vertex_map[(triangle[0], triangle[2])], triangle[1])
+            new_indices.extend([ab_ba, bc_cb, ca_ac])
+
+        # Replace old mesh with subdivided mesh
+        vertices = new_vertices
+        indices = new_indices
+
+        # Average vertices to smooth mesh
+        vertex_neighbors = [[] for _ in range(len(vertices))]
+        for triangle in indices:
+            for i in range(3):
+                vertex_neighbors[triangle[i]].append(triangle[(i+1) % 3])
+                vertex_neighbors[triangle[i]].append(triangle[(i+2) % 3])
+        for i, neighbor_indices in enumerate(vertex_neighbors):
+            neighbors = vertices[neighbor_indices]
+            avg = np.mean(neighbors, axis=0)
+            vertices[i] = avg
+
+    return vertices, indice
